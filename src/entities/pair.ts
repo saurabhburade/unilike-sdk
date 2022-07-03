@@ -7,15 +7,15 @@ import { getCreate2Address } from '@ethersproject/address'
 
 import {
   BigintIsh,
-  FACTORY_ADDRESS_MAP,
-  INIT_CODE_HASH_MAP,
+  FACTORY_ADDRESS,
   MINIMUM_LIQUIDITY,
   ZERO,
   ONE,
   FIVE,
   FEES_NUMERATOR,
   FEES_DENOMINATOR,
-  ChainId
+  ChainId,
+  INIT_CODE_HASH
 } from '../constants'
 import { sqrt, parseBigintIsh } from '../utils'
 import { InsufficientReservesError, InsufficientInputAmountError } from '../errors'
@@ -29,7 +29,12 @@ export class Pair {
   public readonly liquidityToken: Token
   private readonly tokenAmounts: [TokenAmount, TokenAmount]
 
-  public static getAddress(tokenA: Token, tokenB: Token): string {
+  public static getAddress(
+    tokenA: Token,
+    tokenB: Token,
+    FACTORY_ADDRESS_MAP = FACTORY_ADDRESS,
+    INIT_CODE_HASH_MAP = INIT_CODE_HASH
+  ): string {
     const [token0, token1] = tokenA.sortsBefore(tokenB) ? [tokenA, tokenB] : [tokenB, tokenA] // does safety checks
 
     const key = composeKey(token0, token1)
@@ -38,9 +43,9 @@ export class Pair {
       PAIR_ADDRESS_CACHE = {
         ...PAIR_ADDRESS_CACHE,
         [key]: getCreate2Address(
-          FACTORY_ADDRESS_MAP[token0.chainId],
+          FACTORY_ADDRESS_MAP,
           keccak256(['bytes'], [pack(['address', 'address'], [token0.address, token1.address])]),
-          INIT_CODE_HASH_MAP[token0.chainId]
+          INIT_CODE_HASH_MAP
         )
       }
     }
@@ -48,16 +53,21 @@ export class Pair {
     return PAIR_ADDRESS_CACHE[key]
   }
 
-  public constructor(tokenAmountA: TokenAmount, tokenAmountB: TokenAmount) {
+  public constructor(
+    tokenAmountA: TokenAmount,
+    tokenAmountB: TokenAmount,
+    FACTORY_ADDRESS_MAP = FACTORY_ADDRESS,
+    INIT_CODE_HASH_MAP = INIT_CODE_HASH
+  ) {
     const tokenAmounts = tokenAmountA.token.sortsBefore(tokenAmountB.token) // does safety checks
       ? [tokenAmountA, tokenAmountB]
       : [tokenAmountB, tokenAmountA]
     this.liquidityToken = new Token(
       tokenAmounts[0].token.chainId,
-      Pair.getAddress(tokenAmounts[0].token, tokenAmounts[1].token),
+      Pair.getAddress(tokenAmounts[0].token, tokenAmounts[1].token, FACTORY_ADDRESS_MAP, INIT_CODE_HASH_MAP),
       18,
-      'Cake-LP',
-      'Pancake LPs'
+      'UNISWAP',
+      'UNI type Lps'
     )
     this.tokenAmounts = tokenAmounts as [TokenAmount, TokenAmount]
   }
